@@ -77,26 +77,28 @@ std::vector<double> Probabilities_3d(float D2) {
 }
 
 // CUDA: построение дерева
-__global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth) {
+__global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth_max) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int total_nodes = (int)((powf(num_children, depth + 1) - 1) / (num_children - 1));
+    int total_nodes = (int)((powf(num_children, depth_max + 1) - 1) / (num_children - 1));
     if (idx >= total_nodes) return;
 
-    int level = 0, temp = idx, current_level_nodes = 1;
-    while (temp >= current_level_nodes) {
-        temp -= current_level_nodes;
-        current_level_nodes *= num_children;
-        level++;
+    int depth = 0;
+    int count = 0;
+    int level_size = 1;
+
+    // Найдём уровень (depth)
+    while (count + level_size <= idx) {
+        count += level_size;
+        level_size *= num_children;
+        depth++;
     }
 
-    int parent_id = (idx - 1) / num_children;
-    nodes[idx].depth = level;
-    nodes[idx].parent_id = parent_id;
+    int parent_id = (idx == 0) ? -1 : (idx - 1) / num_children;
+    int local_value = (idx == 0) ? 0 : (idx - 1) % num_children;
 
-    if (idx == 0)
-        nodes[idx].value = 0; // корень
-    else
-        nodes[idx].value = (idx - 1) % num_children; // локальный индекс
+    nodes[idx].depth = depth;
+    nodes[idx].parent_id = parent_id;
+    nodes[idx].value = local_value;
 }
 
 // CUDA: выбор потомка по вероятностям
