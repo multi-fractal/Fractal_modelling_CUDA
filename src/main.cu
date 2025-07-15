@@ -161,13 +161,24 @@ int main() {
     }
 
     std::vector<float> P_float(P.begin(), P.end());
-std::cout<<n<<" "<<P[0]<<" "<<P[1]<<P[2]<<" "<<P[3]<<'\n';
+// std::cout<<n<<" "<<P[0]<<" "<<P[1]<<P[2]<<" "<<P[3]<<'\n';
     int total_nodes = (int)((pow(num_children, K + 1) - 1) / (num_children - 1));
 
     NodeGPU* d_nodes;
     cudaMalloc(&d_nodes, total_nodes * sizeof(NodeGPU));
     build_tree_kernel<<<(total_nodes + 255) / 256, 256>>>(d_nodes, num_children, K);
     cudaDeviceSynchronize();
+
+std::vector<NodeGPU> h_nodes(total_nodes);
+cudaMemcpy(h_nodes.data(), d_nodes, total_nodes * sizeof(NodeGPU), cudaMemcpyDeviceToHost);
+
+std::cout << "Tree nodes (first 10):\n";
+for (int i = 0; i < std::min(10, total_nodes); ++i) {
+    std::cout << "Node " << i
+              << " | depth: " << h_nodes[i].depth
+              << " | parent_id: " << h_nodes[i].parent_id
+              << " | value: " << h_nodes[i].value << "\n";
+}
 
     float* d_output;
     cudaMalloc(&d_output, m * n * sizeof(float));
