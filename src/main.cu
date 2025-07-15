@@ -92,18 +92,11 @@ __global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth) {
     int parent_id = (idx - 1) / num_children;
     nodes[idx].depth = level;
     nodes[idx].parent_id = parent_id;
-    nodes[idx].value = idx % num_children;
-}
 
-// CUDA: выбор потомка по вероятностям
-__device__ int sample_discrete(const float* probs, int count, curandState* state) {
-    float r = curand_uniform(state);
-    float cum = 0.0f;
-    for (int i = 0; i < count; ++i) {
-        cum += probs[i];
-        if (r <= cum) return i;
-    }
-    return count - 1;
+    if (idx == 0)
+        nodes[idx].value = 0; // корень
+    else
+        nodes[idx].value = (idx - 1) % num_children; // локальный индекс
 }
 
 // CUDA: блуждание по дереву
