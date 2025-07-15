@@ -165,7 +165,7 @@ int main() {
     std::vector<float> P_float(P.begin(), P.end());
 // std::cout<<n<<" "<<P[0]<<" "<<P[1]<<P[2]<<" "<<P[3]<<'\n';
     int total_nodes = (int)((pow(num_children, K + 1) - 1) / (num_children - 1));
-
+std::cout << "total_nodes = " << total_nodes << std::endl;
     NodeGPU* d_nodes;
     cudaMalloc(&d_nodes, total_nodes * sizeof(NodeGPU));
     build_tree_kernel<<<(total_nodes + 255) / 256, 256>>>(d_nodes, num_children, K);
