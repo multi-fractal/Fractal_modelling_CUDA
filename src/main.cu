@@ -157,7 +157,7 @@ int main() {
     }
 
     std::vector<float> P_float(P.begin(), P.end());
-cout<<n<<" "<<P[0]<<" "<<P[1]<<P[2]<<" "<<P[3]<<'\n';
+std::cout<<n<<" "<<P[0]<<" "<<P[1]<<P[2]<<" "<<P[3]<<'\n';
     int total_nodes = (int)((pow(num_children, K + 1) - 1) / (num_children - 1));
 
     NodeGPU* d_nodes;
