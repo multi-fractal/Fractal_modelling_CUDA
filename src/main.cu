@@ -168,8 +168,14 @@ int main() {
 
     NodeGPU* d_nodes;
     cudaMalloc(&d_nodes, total_nodes * sizeof(NodeGPU));
-    build_tree_kernel<<<(total_nodes + 255) / 256, 256>>>(d_nodes, num_children, K);
-    cudaDeviceSynchronize();
+//    build_tree_kernel<<<(total_nodes + 255) / 256, 256>>>(d_nodes, num_children, K);
+//    cudaDeviceSynchronize();
+build_tree_kernel<<<(total_nodes + 255) / 256, 256>>>(d_nodes, num_children, K);
+cudaError_t err = cudaGetLastError();
+if (err != cudaSuccess) {
+    std::cerr << "CUDA error after build_tree_kernel: " << cudaGetErrorString(err) << std::endl;
+}
+cudaDeviceSynchronize();
 /*
 std::vector<NodeGPU> h_nodes(total_nodes);
 cudaMemcpy(h_nodes.data(), d_nodes, total_nodes * sizeof(NodeGPU), cudaMemcpyDeviceToHost);
@@ -208,7 +214,7 @@ for (int i = 0; i < std::min(10, total_nodes); ++i) {
     }
     fout.close();
     std::cout << "✅ Результаты сохранены в gpu_walk_with_probs.csv\n";
-
+/*
 std::vector<NodeGPU> h_nodes(total_nodes);
 cudaMemcpy(h_nodes.data(), d_nodes, total_nodes * sizeof(NodeGPU), cudaMemcpyDeviceToHost);
 
@@ -220,7 +226,7 @@ for (int i = 0; i < std::min(10, total_nodes); ++i) {
               << ", parent_id: " << h_nodes[i].parent_id
               << ", value: " << h_nodes[i].value << "\n";
 }
-
+*/
     cudaFree(d_nodes);
     cudaFree(d_output);
     cudaFree(d_P);
