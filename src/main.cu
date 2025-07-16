@@ -189,7 +189,7 @@ int main() {
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j){
             fout << h_output[i * n + j];
-            if(j<n-1) << ", " ;
+            if(j<n-1) fout << ", " ;
         }
         fout << "\n";
     }
