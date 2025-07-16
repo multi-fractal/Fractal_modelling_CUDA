@@ -186,13 +186,11 @@ int main() {
     cudaMemcpy(h_output.data(), d_output, m * n * sizeof(float), cudaMemcpyDeviceToHost);
 
     std::ofstream fout("gpu_walk_with_probs.csv");
-    fout << "walk_id";
-    for (int i = 0; i < n; ++i) fout << ", x" << i;
-    fout << "\n";
     for (int i = 0; i < m; ++i) {
-        fout << i;
-        for (int j = 0; j < n; ++j)
-            fout << ", " << h_output[i * n + j];
+        for (int j = 0; j < n; ++j){
+            fout << h_output[i * n + j];
+            if(j<n-1) << ", " ;
+        }
         fout << "\n";
     }
     fout.close();
