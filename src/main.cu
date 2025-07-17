@@ -147,7 +147,7 @@ __global__ void random_walk_kernel(NodeGPU* nodes, int total_nodes, int num_chil
 int main() {
     srand(time(NULL));
 
-    int K = 4;         // глубина дерева
+    int K = 7;         // глубина дерева
     int n = 2;         // размерность
     int num_children = 1 << n;
     int m = 10000;     // количество блужданий
@@ -185,7 +185,7 @@ int main() {
     std::vector<float> h_output(m * n);
     cudaMemcpy(h_output.data(), d_output, m * n * sizeof(float), cudaMemcpyDeviceToHost);
 
-    std::ofstream fout("gpu_walk_with_probs.csv");
+    std::ofstream fout("output.csv");
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j){
             fout << h_output[i * n + j];
@@ -194,7 +194,7 @@ int main() {
         fout << "\n";
     }
     fout.close();
-    std::cout << "✅ Результаты сохранены в gpu_walk_with_probs.csv\n";
+    std::cout << "✅ Результаты сохранены в output.csv\n";
 
     cudaFree(d_nodes);
     cudaFree(d_output);
