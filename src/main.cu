@@ -8,20 +8,20 @@
 
 #define MAX_N 3
 
-// GPU структура узла дерева
+// GPU Tree node structure
 struct NodeGPU {
     int depth;
     int parent_id;
     int value;
 };
 
-// Проверка неотрицательности вектора
+// Checking vector non-negativity
 bool allNonNegative(const std::vector<double>& v) {
     for (double x : v) if (x < 0) return false;
     return true;
 }
 
-// Моделирование вероятностей (CPU)
+// Probability modeling (CPU)
 std::vector<double> Probabilities_1d(float D2) {
     std::vector<double> P(2);
     double R = pow(0.5, D2);
@@ -76,7 +76,7 @@ std::vector<double> Probabilities_3d(float D2) {
     return P;
 }
 
-// CUDA: построение дерева
+// CUDA: building a tree
 __global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth_max) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int total_nodes = (int)((powf(num_children, depth_max + 1) - 1) / (num_children - 1));
@@ -86,7 +86,7 @@ __global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth_ma
     int count = 0;
     int level_size = 1;
 
-    // Найдём уровень (depth)
+    // Finding the level (depth)
     while (count + level_size <= idx) {
         count += level_size;
         level_size *= num_children;
@@ -101,7 +101,7 @@ __global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth_ma
     nodes[idx].value = local_value;
 }
 
-// CUDA: выбор потомка по вероятностям
+// CUDA: choosing a child node according to probabilities
 __device__ int sample_discrete(const float* probs, int count, curandState* state) {
     float r = curand_uniform(state);
     float cum = 0.0f;
@@ -112,7 +112,7 @@ __device__ int sample_discrete(const float* probs, int count, curandState* state
     return count - 1;
 }
 
-// CUDA: блуждание по дереву
+// CUDA: One random walk on the tree
 __global__ void random_walk_kernel(NodeGPU* nodes, int total_nodes, int num_children, int depth,
                                    float* output, int n, int m, const float* d_P, unsigned int seed) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -147,10 +147,10 @@ __global__ void random_walk_kernel(NodeGPU* nodes, int total_nodes, int num_chil
 int main() {
     srand(time(NULL));
 
-    int K = 7;         // глубина дерева
-    int n = 2;         // размерность
+    int K = 7;         // tree depth
+    int n = 2;         // dimensionality
     int num_children = 1 << n;
-    int m = 10000;     // количество блужданий
+    int m = 10000;     // number of walks
     float D2 = 1.75;
 
     std::vector<double> P;
@@ -194,7 +194,7 @@ int main() {
         fout << "\n";
     }
     fout.close();
-    std::cout << "✅ Результаты сохранены в output.csv\n";
+    std::cout << "Results saved in output.csv\n";
 
     cudaFree(d_nodes);
     cudaFree(d_output);
