@@ -3,20 +3,21 @@
 Solving the problem of modeling point fractal sets with a specified correlation fractal dimension. Refactoring the code developed at https://github.com/multi-fractal/Fractal_modelling for GPU computation using CUDA.
 
 
-Compilation and Execution
+**Compilation and Execution**
 
 nvcc -o main main.cu
 
-./main
+./main  
 
-Compilation and Execution on Google Colab
+
+**Compilation and Execution on Google Colab**
 
 !nvcc main.cu -o main -arch=sm_75
 
 !./main
 
 
-References
+**References**
 
 Darcel, C., Bour, O., Davy, P., de Dreuzy, J., 2003. Connectivity properties of two-dimensional fracture network with stochastic fractal correlation.Water. Resour. Res. 39, 1272.
 
