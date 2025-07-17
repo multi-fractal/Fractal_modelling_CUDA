@@ -4,10 +4,12 @@ Solving the problem of modeling point fractal sets with a specified correlation 
 
 
 Compilation and Execution
+
 nvcc -o main main.cu
 ./main
 
 Compilation and Execution on Google Colab
+
 !nvcc main.cu -o main -arch=sm_75
 !./main
 
