@@ -77,28 +77,50 @@ std::vector<double> Probabilities_3d(float D2) {
 }
 
 // CUDA: building a tree
-__global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth_max) {
+__global__ void build_tree_kernel(NodeGPU* nodes, int num_children, int depth, unsigned int seed) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    int total_nodes = (int)((powf(num_children, depth_max + 1) - 1) / (num_children - 1));
+    int total_nodes = (int)((powf(num_children, depth + 1) - 1) / (num_children - 1));
     if (idx >= total_nodes) return;
 
-    int depth = 0;
-    int count = 0;
-    int level_size = 1;
-
-    // Finding the level (depth)
-    while (count + level_size <= idx) {
-        count += level_size;
-        level_size *= num_children;
-        depth++;
+    // Computing the node's level (depth)
+    int level = 0, temp = idx, current_level_nodes = 1;
+    while (temp >= current_level_nodes) {
+        temp -= current_level_nodes;
+        current_level_nodes *= num_children;
+        level++;
     }
 
-    int parent_id = (idx == 0) ? -1 : (idx - 1) / num_children;
-    int local_value = (idx == 0) ? 0 : (idx - 1) % num_children;
+    // Computing the parent
+    int parent_id = (idx - 1) / num_children;
 
-    nodes[idx].depth = depth;
+    nodes[idx].depth = level;
     nodes[idx].parent_id = parent_id;
-    nodes[idx].value = local_value;
+
+    if (idx == 0) {
+        nodes[idx].value = 0;  // root
+        return;
+    }
+
+    // Initialization of the random number generator
+    curandState state;
+    curand_init(seed + parent_id, 0, 0, &state); // one seed per parent
+
+    // random permutation for the children of a given parent
+    const int MAX_CHILDREN = 8;  // should be >= num_children
+    int perm[MAX_CHILDREN];
+    for (int i = 0; i < num_children; ++i) perm[i] = i;
+
+    // Shuffling (Fisher-Yates)
+    for (int i = num_children - 1; i > 0; --i) {
+        int j = curand(&state) % (i + 1);
+        int tmp = perm[i];
+        perm[i] = perm[j];
+        perm[j] = tmp;
+    }
+
+    // Determining the node's position among its parent's children
+    int child_local_index = (idx - 1) % num_children;
+    nodes[idx].value = perm[child_local_index];
 }
 
 // CUDA: choosing a child node according to probabilities
@@ -112,7 +134,7 @@ __device__ int sample_discrete(const float* probs, int count, curandState* state
     return count - 1;
 }
 
-// CUDA: One random walk on the tree
+// CUDA: one random walk on the tree
 __global__ void random_walk_kernel(NodeGPU* nodes, int total_nodes, int num_children, int depth,
                                    float* output, int n, int m, const float* d_P, unsigned int seed) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -145,13 +167,19 @@ __global__ void random_walk_kernel(NodeGPU* nodes, int total_nodes, int num_chil
 }
 
 int main() {
+    cudaSetDevice(0);
     srand(time(NULL));
 
     int K = 7;         // tree depth
     int n = 2;         // dimensionality
     int num_children = 1 << n;
-    int m = 10000;     // number of walks
+    int m = 1000;     // number of walks
     float D2 = 1.75;
+
+    int total_nodes = (int)((pow(num_children, K + 1) - 1) / (num_children - 1));
+
+    int threads = 256;
+    int blocks = (total_nodes + threads - 1) / threads;
 
     std::vector<double> P;
     if (n == 1) P = Probabilities_1d(D2);
@@ -164,11 +192,11 @@ int main() {
 
     std::vector<float> P_float(P.begin(), P.end());
 
-    int total_nodes = (int)((pow(num_children, K + 1) - 1) / (num_children - 1));
-
     NodeGPU* d_nodes;
     cudaMalloc(&d_nodes, total_nodes * sizeof(NodeGPU));
-    build_tree_kernel<<<(total_nodes + 255) / 256, 256>>>(d_nodes, num_children, K);
+
+    unsigned int seed = static_cast<unsigned int>(time(NULL));
+    build_tree_kernel<<<blocks, threads>>>(d_nodes, num_children, K,seed);
     cudaDeviceSynchronize();
 
     float* d_output;
@@ -178,7 +206,7 @@ int main() {
     cudaMalloc(&d_P, num_children * sizeof(float));
     cudaMemcpy(d_P, P_float.data(), num_children * sizeof(float), cudaMemcpyHostToDevice);
 
-    random_walk_kernel<<<(m + 255) / 256, 256>>>(d_nodes, total_nodes, num_children, K,
+    random_walk_kernel<<<(m + threads-1) / threads, threads>>>(d_nodes, total_nodes, num_children, K,
                                                  d_output, n, m, d_P, time(NULL));
     cudaDeviceSynchronize();
 
@@ -202,4 +230,3 @@ int main() {
 
     return 0;
 }
-
